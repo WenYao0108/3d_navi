@@ -1,0 +1,46 @@
+.vscode/                 # VSCode 配置
+**/.vscode/               # 任意层级的 VSCode 配置
+*.bak                    # 备份文件
+*.tmp                    # 临时文件
+# 匹配任意层级的 log/、logs/ 文件夹（大小写不敏感）
+**/log/
+**/logs/
+**/Log/
+**/Logs/
+# 匹配 ROS 2 专属的 ros2_log 文件夹
+**/ros2_log/
+# 匹配所有 .log 后缀的日志文件（任意位置）
+**/*.log
+# 匹配日志备份文件
+**/*.log.*
+# 匹配系统/程序生成的日志缓存
+**/*.log_cache/
+
+# ==================== ROS 专属忽略规则 ====================
+build/
+install/
+devel/
+
+.gn                      # GN 构建系统文件
+out/                     # 编译输出目录
+
+# 模型/仿真相关临时文件
+*.sdf.bak                # SDF 备份
+*.urdf.bak               # URDF 备份
+meshes/*.blend1          # Blender 模型备份
+meshes/*.obj.bak         # 网格文件备份
+
+# Python 虚拟环境/依赖
+venv/
+.env
+*.egg-info/
+__pycache__/
+*.pyc
+
+# 二进制可执行文件
+*.so
+*.dll
+*.exe
+*.o
+*.a
+
