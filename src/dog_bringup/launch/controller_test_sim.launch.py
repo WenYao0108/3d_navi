@@ -6,9 +6,11 @@ from launch.actions import (
     DeclareLaunchArgument,
     ExecuteProcess,
     IncludeLaunchDescription,
+    RegisterEventHandler,
     TimerAction,
 )
 from launch.conditions import IfCondition
+from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer, Node
@@ -52,8 +54,25 @@ def generate_launch_description():
     world = LaunchConfiguration("world")
 
     xacro_file = os.path.join(pkg, "xacro", "cdut_dog", "dog.xacro")
-    rviz_config_file = os.path.join(pkg, "config", "dog.rviz")
+    rviz_config_file = os.path.join(pkg, "config", "controller_test.rviz")
+    urdf_output_dir = os.path.join(pkg, "config", "cdut_dog", "description")
+    urdf_output_file = os.path.join(urdf_output_dir, "dog.urdf")
     xacro_command = ["xacro ", xacro_file, " is_sim:=true"]
+
+    generate_urdf = ExecuteProcess(
+        cmd=[
+            "mkdir -p "
+            + urdf_output_dir
+            + " && xacro "
+            + xacro_file
+            + " is_sim:=true -o "
+            + urdf_output_file
+            + " && test -s "
+            + urdf_output_file
+        ],
+        shell=True,
+        output="screen",
+    )
 
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -151,10 +170,27 @@ def generate_launch_description():
                     "DogNmpcWbcControllerSim",
                     "--controller-manager",
                     "/controller_manager",
+                    "--controller-manager-timeout",
+                    "120",
+                    "--service-call-timeout",
+                    "120",
+                    "--switch-timeout",
+                    "120",
                 ],
                 output="screen",
             )
         ],
+    )
+
+    spawn_controllers_after_urdf = RegisterEventHandler(
+        OnProcessExit(
+            target_action=generate_urdf,
+            on_exit=[
+                joint_state_broadcaster_spawner,
+                imu_broadcaster_spawner,
+                controller_spawner,
+            ],
+        )
     )
 
     rviz_node = Node(
@@ -173,15 +209,14 @@ def generate_launch_description():
                 default_value=os.path.join(pkg, "config", "controller_test.world"),
                 description="Gazebo world file for controller testing.",
             ),
-            DeclareLaunchArgument("gui", default_value="true"),
+            DeclareLaunchArgument("gui", default_value="false"),
             DeclareLaunchArgument("use_rviz", default_value="true"),
             DeclareLaunchArgument("command_test", default_value="true"),
+            generate_urdf,
             gazebo,
             dog_state_container,
             spawn_entity,
-            joint_state_broadcaster_spawner,
-            imu_broadcaster_spawner,
-            controller_spawner,
+            spawn_controllers_after_urdf,
             rviz_node,
             cmd_vel_once(9.0, linear_x=0.15),
             cmd_vel_once(12.0, linear_x=0.15),
